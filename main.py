@@ -1,20 +1,21 @@
 import asyncio
 import logging
 import random
+import os  # Tizim o'zgaruvchilari bilan ishlash uchun
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, BotCommand
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.client.default import DefaultBotProperties
 
-API_TOKEN = '8655041954:AAHs4kQitwIu0hnOblkyd9NM3bQSHPDoYO8'
+# Tokenni kod ichiga yozmaymiz, uni server sozlamalaridan oladi
+API_TOKEN = os.getenv('8655041954:AAHs4kQitwIu0hnOblkyd9NM3bQSHPDoYO8')
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=API_TOKEN, default=DefaultBotProperties(parse_mode='HTML'))
 dp = Dispatcher()
 
 xatm_db = {}
-
 
 def make_text(data):
     lines = ["📖 <b>Xatim yaratildi!</b>", ""]
@@ -28,7 +29,6 @@ def make_text(data):
         lines.append("📋 Qatnashuvchilar: hali yo'q")
     return "\n".join(lines)
 
-
 def taqsimla(users, jami=30):
     n = len(users)
     names = list(users.values())
@@ -37,10 +37,8 @@ def taqsimla(users, jami=30):
         ulushlar[random.randint(0, n - 1)] += 1
     return list(zip(names, ulushlar))
 
-
 def get_others(data):
     return [uid for uid in data["users"] if uid != data["creator_id"]]
-
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
@@ -62,7 +60,6 @@ async def cmd_start(message: types.Message):
         InlineKeyboardButton(text="➕ Guruhga qo'shish", url=f"https://t.me/{bot_info.username}?startgroup=true")
     ]])
     await message.answer(text, reply_markup=kb)
-
 
 @dp.message(Command("xatimyaratish"))
 async def cmd_xatim(message: types.Message):
@@ -86,7 +83,6 @@ async def cmd_xatim(message: types.Message):
     await sent.edit_reply_markup(reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="➕ Qo'shilish", callback_data=f"join_{sent.message_id}")
     ]]))
-
 
 @dp.callback_query(F.data.startswith("join_"))
 async def cb_join(callback: CallbackQuery):
@@ -117,7 +113,6 @@ async def cb_join(callback: CallbackQuery):
     except TelegramBadRequest:
         pass
 
-
 @dp.callback_query(F.data.startswith("leave_"))
 async def cb_leave(callback: CallbackQuery):
     msg_id = int(callback.data.split("_")[1])
@@ -127,7 +122,6 @@ async def cb_leave(callback: CallbackQuery):
     data = xatm_db[msg_id]
     user_id = callback.from_user.id
 
-    # ADMIN bosdi — xatimni boshlash
     if user_id == data["creator_id"]:
         others = get_others(data)
         if len(others) == 0:
@@ -144,7 +138,6 @@ async def cb_leave(callback: CallbackQuery):
         xatm_db.pop(msg_id, None)
         return await callback.answer("Boshlandi! 📖")
 
-    # ODDIY ODAM — chiqish
     if user_id not in data["users"]:
         return await callback.answer("Siz ro'yxatda yo'qsiz!", show_alert=False)
 
@@ -160,7 +153,6 @@ async def cb_leave(callback: CallbackQuery):
         )
     except TelegramBadRequest:
         pass
-
 
 async def main():
     await bot.set_my_commands([
